@@ -1,0 +1,248 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;500;600&display=swap');
+
+:root {
+    --bg-color: #080710;
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --border-color: rgba(255, 255, 255, 0.5);
+    --text-color: #ffffff;
+    --primary: #23a2f6;
+    --error: #ff4b4b;
+    --success: #2ecc71;
+    --warning: #f1c40f;
+}
+
+* {
+    padding: 0;
+    margin: 0;
+    box-sizing: border-box;
+}
+
+body {
+    background-color: var(--bg-color);
+    font-family: 'Poppins', sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    overflow: hidden;
+}
+
+/* Animated Background Shapes */
+.background .shape {
+    height: 200px;
+    width: 200px;
+    position: absolute;
+    border-radius: 50%;
+}
+
+.shape:first-child {
+    background: linear-gradient(#1845ad, #23a2f6);
+    left: -80px;
+    top: -80px;
+    animation: move 10s linear infinite;
+}
+
+.shape:last-child {
+    background: linear-gradient(to right, #ff512f, #f09819);
+    right: -30px;
+    bottom: -80px;
+    animation: move 10s linear infinite reverse;
+}
+
+@keyframes move {
+    0% { transform: translate(0, 0); }
+    50% { transform: translate(40px, 40px); }
+    100% { transform: translate(0, 0); }
+}
+
+/* Glassmorphism Card */
+.glass-container {
+    width: 400px;
+    background: var(--glass-bg);
+    border-radius: 10px;
+    backdrop-filter: blur(10px);
+    border: 1px solid var(--border-color);
+    box-shadow: 0 0 40px rgba(8, 7, 16, 0.6);
+    padding: 50px 35px;
+    z-index: 1;
+}
+
+form h2 {
+    font-size: 32px;
+    font-weight: 500;
+    line-height: 42px;
+    text-align: center;
+    color: var(--text-color);
+    margin-bottom: 30px;
+}
+
+/* Floating Label Inputs */
+.input-group {
+    position: relative;
+    margin-bottom: 25px;
+}
+
+.input-group input {
+    display: block;
+    height: 50px;
+    width: 100%;
+    background-color: rgba(255, 255, 255, 0.07);
+    border-radius: 3px;
+    padding: 0 10px;
+    font-size: 14px;
+    font-weight: 300;
+    color: var(--text-color);
+    border: 1px solid transparent;
+    transition: 0.3s;
+    outline: none;
+}
+
+.input-group label {
+    position: absolute;
+    top: 50%;
+    left: 10px;
+    transform: translateY(-50%);
+    color: #e5e5e5;
+    font-size: 14px;
+    pointer-events: none;
+    transition: 0.3s;
+}
+
+/* Float label when focused or has value */
+.input-group input:focus + label,
+.input-group input:not(:placeholder-shown) + label {
+    top: 0;
+    font-size: 12px;
+    font-weight: 600;
+    background: var(--bg-color); /* Mask line */
+    padding: 0 5px;
+    color: var(--primary);
+}
+
+.input-group input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 5px rgba(35, 162, 246, 0.5);
+}
+
+/* Error/Success Icons & Messages */
+.input-group i {
+    position: absolute;
+    right: 10px;
+    top: 15px;
+    visibility: hidden;
+}
+
+.toggle-password {
+    cursor: pointer;
+    visibility: visible !important;
+    color: #e5e5e5;
+    z-index: 2;
+}
+
+.input-group small {
+    color: var(--error);
+    font-size: 11px;
+    visibility: hidden;
+    position: absolute;
+    bottom: -18px;
+    left: 0;
+}
+
+/* Validation States */
+.input-group.error input { border-color: var(--error); }
+.input-group.error small { visibility: visible; }
+.input-group.error .error-icon { color: var(--error); visibility: visible; }
+
+.input-group.success input { border-color: var(--success); }
+.input-group.success .success-icon { color: var(--success); visibility: visible; }
+
+/* Password Strength Meter */
+.strength-container {
+    height: 4px;
+    width: 100%;
+    background: #eee;
+    margin-top: 5px;
+    border-radius: 2px;
+    overflow: hidden;
+    display: none; /* Hidden until typing */
+}
+
+.strength-bar {
+    height: 100%;
+    width: 0%;
+    transition: width 0.3s, background-color 0.3s;
+}
+
+.strength-text {
+    text-align: right;
+    font-size: 11px;
+    color: #ccc;
+    margin-top: 2px;
+    display: none;
+}
+
+/* Submit Button with Loader */
+button {
+    margin-top: 20px;
+    width: 100%;
+    background-color: #ffffff;
+    color: #080710;
+    padding: 15px 0;
+    font-size: 18px;
+    font-weight: 600;
+    border-radius: 5px;
+    cursor: pointer;
+    transition: 0.3s;
+    border: none;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+button:hover { background-color: #e6e6e6; }
+
+.loader {
+    display: none;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid #080710;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    animation: spin 1s linear infinite;
+    margin-left: 10px;
+}
+
+@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+
+/* Toast Notifications */
+#toast-box {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 10px;
+}
+
+.toast {
+    width: 350px;
+    background: white;
+    padding: 15px;
+    border-radius: 5px;
+    box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+    display: flex;
+    align-items: center;
+    border-left: 5px solid;
+    transform: translateX(100%);
+    animation: slideIn 0.5s forwards, slideOut 0.5s forwards 4s;
+}
+
+.toast.success { border-color: var(--success); }
+.toast.error { border-color: var(--error); }
+.toast i { margin-right: 15px; font-size: 20px; }
+.toast.success i { color: var(--success); }
+.toast.error i { color: var(--error); }
+
+@keyframes slideIn { 100% { transform: translateX(0); } }
+@keyframes slideOut { 0% { transform: translateX(0); } 100% { transform: translateX(120%); } }
