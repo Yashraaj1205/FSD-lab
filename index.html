@@ -48,8 +48,8 @@
 
     <div id="ui-layer">
         <div id="loader">Initializing Core...</div>
-        <div class="hud-text bl">System: Online<br>Mode: Interactive</div>
-        <div class="hud-text tr">The Monolith<br>v.9.0.1</div>
+        <div class="hud-text bl">System: Online<br>Logic: Scientific</div>
+        <div class="hud-text tr">The Monolith<br>v.9.0.2 (Patched)</div>
     </div>
 
     <script type="importmap">
@@ -72,11 +72,11 @@
         scene.fog = new THREE.FogExp2(0x050505, 0.02);
 
         const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 0, 14); // Head-on view initially
+        camera.position.set(0, 0, 15); // Moved back slightly to fit new layout
 
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(window.innerWidth, window.innerHeight);
-        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x for performance
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
         renderer.toneMappingExposure = 1.2;
         renderer.shadowMap.enabled = true;
@@ -85,57 +85,45 @@
 
         RectAreaLightUniformsLib.init();
 
-        // Controls
         const controls = new OrbitControls(camera, renderer.domElement);
         controls.enableDamping = true;
         controls.dampingFactor = 0.05;
         controls.minDistance = 8;
-        controls.maxDistance = 20;
+        controls.maxDistance = 25;
         controls.enablePan = false;
 
         // --- 2. MATERIALS & ASSETS ---
-        
-        // The "Monolith" Glass Material
         const glassMaterial = new THREE.MeshPhysicalMaterial({
             color: 0xffffff,
-            metalness: 0.1,
-            roughness: 0.05,
-            transmission: 0.95, // Glass-like transparency
-            thickness: 2.5, // Refraction thickness
-            clearcoat: 1.0,
-            clearcoatRoughness: 0.0,
+            metalness: 0.1, roughness: 0.05,
+            transmission: 0.95, thickness: 2.5,
+            clearcoat: 1.0, clearcoatRoughness: 0.0,
             ior: 1.5,
-            attenuationColor: 0x00f3ff, // Cyan tint inside
-            attenuationDistance: 5
+            attenuationColor: 0x00f3ff, attenuationDistance: 5
         });
 
-        // Button Material (Dark Matte Metal)
         const btnBaseMaterial = new THREE.MeshPhysicalMaterial({
-            color: 0x111111,
-            metalness: 0.8,
-            roughness: 0.4,
-            clearcoat: 0.2
+            color: 0x111111, metalness: 0.8, roughness: 0.4, clearcoat: 0.2
         });
 
         // --- 3. SCENE OBJECTS ---
-
         const calcGroup = new THREE.Group();
         scene.add(calcGroup);
 
-        // A. The Body (Glass Case)
-        const bodyGeo = new RoundedBoxGeometry(5, 7.5, 0.8, 4, 0.2);
+        // A. The Body (Stretched slightly for new buttons)
+        const bodyGeo = new RoundedBoxGeometry(5, 8.5, 0.8, 4, 0.2); // Taller body
         const bodyMesh = new THREE.Mesh(bodyGeo, glassMaterial);
         bodyMesh.castShadow = true;
         calcGroup.add(bodyMesh);
 
-        // B. Internal Backplate (To make text legible against glass)
-        const plateGeo = new THREE.PlaneGeometry(4.6, 7.1);
+        // B. Internal Backplate
+        const plateGeo = new THREE.PlaneGeometry(4.6, 8.1);
         const plateMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
         const plate = new THREE.Mesh(plateGeo, plateMat);
         plate.position.z = -0.3; 
         calcGroup.add(plate);
 
-        // C. The Screen (Dynamic Canvas)
+        // C. The Screen
         const canvas = document.createElement('canvas');
         canvas.width = 1024; canvas.height = 256;
         const ctx = canvas.getContext('2d');
@@ -143,45 +131,39 @@
         const screenTex = new THREE.CanvasTexture(canvas);
         const screenMat = new THREE.MeshStandardMaterial({
             map: screenTex,
-            emissive: 0xffffff,
-            emissiveMap: screenTex,
-            emissiveIntensity: 2, // Glow intensity
-            roughness: 0.2,
-            metalness: 0.8,
-            transparent: true
+            emissive: 0xffffff, emissiveMap: screenTex, emissiveIntensity: 2,
+            roughness: 0.2, metalness: 0.8, transparent: true
         });
 
         const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.2), screenMat);
-        screenMesh.position.set(0, 2.6, 0.41);
+        screenMesh.position.set(0, 3.2, 0.41); // Moved up
         calcGroup.add(screenMesh);
 
         function renderScreen(mainText, subText = "") {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
             // Subtext (History)
             ctx.font = '500 40px "Rajdhani"';
-            ctx.fillStyle = 'rgba(0, 243, 255, 0.5)'; // Cyan dim
+            ctx.fillStyle = 'rgba(0, 243, 255, 0.5)';
             ctx.textAlign = 'right';
             ctx.fillText(subText, 980, 60);
-
             // Main Text
-            ctx.font = '700 140px "Orbitron"';
+            ctx.font = '700 130px "Orbitron"';
             ctx.fillStyle = '#ffffff';
             ctx.shadowColor = '#00f3ff';
             ctx.shadowBlur = 20;
             ctx.fillText(mainText, 980, 200);
-            
             screenTex.needsUpdate = true;
         }
 
-        // D. Buttons
+        // D. Buttons (NEW LAYOUT)
         const buttons = [];
         const btnLabels = [
-            ['AC', 'sin', 'cos', '/'],
-            ['7', '8', '9', '*'],
-            ['4', '5', '6', '-'],
-            ['1', '2', '3', '+'],
-            ['0', '.', '←', '=']
+            ['AC', '(', ')', '/'],
+            ['sin', 'cos', 'tan', '*'],
+            ['7', '8', '9', '-'],
+            ['4', '5', '6', '+'],
+            ['1', '2', '3', '^'],
+            ['0', '.', 'DEL', '=']
         ];
 
         const btnGeo = new RoundedBoxGeometry(0.9, 0.7, 0.3, 4, 0.1);
@@ -189,8 +171,6 @@
         btnLabels.forEach((row, rIdx) => {
             row.forEach((label, cIdx) => {
                 const btnGroup = new THREE.Group();
-                
-                // Button Mesh
                 const mesh = new THREE.Mesh(btnGeo, btnBaseMaterial.clone());
                 
                 // Color coding
@@ -204,7 +184,7 @@
                 const lblCanvas = document.createElement('canvas');
                 lblCanvas.width = 128; lblCanvas.height = 128;
                 const lCtx = lblCanvas.getContext('2d');
-                lCtx.font = 'bold 60px "Rajdhani"';
+                lCtx.font = 'bold 50px "Rajdhani"';
                 lCtx.fillStyle = '#ffffff';
                 lCtx.textAlign = 'center';
                 lCtx.textBaseline = 'middle';
@@ -216,139 +196,161 @@
                 lblMesh.position.z = 0.16;
                 btnGroup.add(lblMesh);
 
-                // Position
+                // Adjusted Position for 6 rows
                 btnGroup.position.set(
                     (cIdx - 1.5) * 1.1,
-                    1.2 - (rIdx * 0.9),
+                    2.0 - (rIdx * 0.9), // Adjusted Y start point
                     0.4
                 );
                 
-                // Metadata
-                btnGroup.userData = { 
-                    label: label, 
-                    origZ: 0.4,
-                    mesh: mesh 
-                };
-                
+                btnGroup.userData = { label: label, origZ: 0.4, mesh: mesh };
                 calcGroup.add(btnGroup);
                 buttons.push(btnGroup);
             });
         });
 
-        // --- 4. LIGHTING SYSTEM ---
-
-        // Ambient tint
+        // --- 4. LIGHTING ---
         const ambient = new THREE.AmbientLight(0x222222);
         scene.add(ambient);
 
-        // Main Spotlight (creates shadows)
         const spot = new THREE.SpotLight(0xffffff, 50);
         spot.position.set(10, 20, 10);
-        spot.angle = 0.3;
-        spot.penumbra = 1;
-        spot.castShadow = true;
+        spot.angle = 0.3; spot.penumbra = 1; spot.castShadow = true;
         scene.add(spot);
 
-        // Cyan Rim Light (Cyberpunk feel)
         const rimLight1 = new THREE.PointLight(0x00f3ff, 20, 20);
         rimLight1.position.set(-5, 0, -5);
         scene.add(rimLight1);
 
-        // Magenta Rim Light
         const rimLight2 = new THREE.PointLight(0xff0055, 20, 20);
         rimLight2.position.set(5, -5, -5);
         scene.add(rimLight2);
 
-        // --- 5. BACKGROUND PARTICLES (The "Mesmerizing" Part) ---
+        // --- 5. BACKGROUND PARTICLES ---
         const particleCount = 400;
         const posArray = new Float32Array(particleCount * 3);
-        
-        for(let i=0; i < particleCount * 3; i++) {
-            posArray[i] = (Math.random() - 0.5) * 30; // Spread
-        }
+        for(let i=0; i < particleCount * 3; i++) posArray[i] = (Math.random() - 0.5) * 30;
         
         const starsGeo = new THREE.BufferGeometry();
         starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
-        
         const starsMat = new THREE.PointsMaterial({
-            size: 0.1,
-            color: 0x00f3ff,
-            transparent: true,
-            opacity: 0.8,
-            blending: THREE.AdditiveBlending
+            size: 0.1, color: 0x00f3ff, transparent: true, opacity: 0.8, blending: THREE.AdditiveBlending
         });
-        
         const starMesh = new THREE.Points(starsGeo, starsMat);
         scene.add(starMesh);
 
 
-        // --- 6. LOGIC & INTERACTION ---
+        // --- 6. LOGIC ENGINE (REWRITTEN) ---
 
-        let expr = "";
-        let result = "";
+        let display = "0";
+        let history = "";
         let isResult = false;
+        let parensCount = 0;
 
-        // Sound Synthesis (Browser Native)
+        // Sound
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        function playTone(freq, type='sine') {
+        function playTone(freq) {
             if(audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = type;
             osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
             gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
-            osc.connect(gain);
-            gain.connect(audioCtx.destination);
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
+            osc.connect(gain); gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
 
         function handleInput(val) {
-            // Visual Effect: Shake Screen slightly
+            // Visual feedback
             screenMesh.position.x = (Math.random() - 0.5) * 0.05;
             setTimeout(() => screenMesh.position.x = 0, 50);
 
+            // 1. CLEAR
             if (val === 'AC') {
-                expr = "";
-                result = "";
-                playTone(200, 'triangle');
-            } else if (val === '←') {
-                expr = expr.slice(0, -1);
-                playTone(300);
-            } else if (val === '=') {
-                playTone(600, 'square');
-                try {
-                    // Safe Eval replacement with Math functions
-                    let safeExpr = expr
-                        .replace(/sin/g, 'Math.sin')
-                        .replace(/cos/g, 'Math.cos')
-                        .replace(/tan/g, 'Math.tan')
-                        .replace(/log/g, 'Math.log10');
-                    
-                    // Simple parser for demonstration
-                    const res = eval(safeExpr); 
-                    
-                    if (!isFinite(res) || isNaN(res)) throw "Error";
-                    result = parseFloat(res.toFixed(8)).toString();
-                    isResult = true;
-                } catch {
-                    result = "ERR";
+                display = "0"; history = ""; isResult = false; parensCount = 0;
+                playTone(200);
+            } 
+            // 2. DELETE
+            else if (val === 'DEL') {
+                if(isResult) { display = "0"; isResult = false; }
+                else {
+                    if(display.endsWith('(')) parensCount--;
+                    if(display.endsWith(')')) parensCount++;
+                    display = display.length > 1 ? display.slice(0, -1) : "0";
                 }
-            } else {
-                playTone(400 + Math.random()*100);
-                if (isResult && !['+','-','*','/'].includes(val)) {
-                    expr = val;
-                    result = "";
-                    isResult = false;
+                playTone(300);
+            } 
+            // 3. EQUALS
+            else if (val === '=') {
+                playTone(600);
+                try {
+                    let expression = display
+                        .replace(/sin\(/g, 'Math.sin((Math.PI/180)*') // Degrees fix
+                        .replace(/cos\(/g, 'Math.cos((Math.PI/180)*')
+                        .replace(/tan\(/g, 'Math.tan((Math.PI/180)*')
+                        .replace(/\^/g, '**');
+
+                    // Close brackets automatically
+                    let tempParens = parensCount;
+                    while(tempParens > 0) { expression += ")"; tempParens--; }
+
+                    const res = eval(expression);
+                    if (!isFinite(res) || isNaN(res)) throw "Err";
+                    
+                    history = display + " =";
+                    display = parseFloat(res.toFixed(8)).toString();
+                    isResult = true;
+                    parensCount = 0; // Reset parens count after calculation
+                } catch {
+                    display = "Error";
+                    isResult = true;
+                }
+            } 
+            // 4. INPUTS
+            else {
+                playTone(400);
+                
+                // Logic: Chaining
+                if (isResult) {
+                    if (['+', '-', '*', '/', '^'].includes(val)) {
+                        // Continue with result
+                        isResult = false;
+                        history = "Ans " + val;
+                    } else {
+                        // New calculation
+                        display = "0";
+                        isResult = false;
+                        history = "";
+                    }
+                }
+
+                // Logic: Operators replacement
+                const ops = ['+', '-', '*', '/', '^', '.'];
+                if (ops.includes(val) && ops.includes(display.slice(-1))) {
+                    display = display.slice(0, -1) + val; // Swap operator
                 } else {
-                    isResult = false;
-                    expr += val;
+                    // Logic: Functions
+                    if (['sin', 'cos', 'tan'].includes(val)) {
+                        if (display === "0") display = "";
+                        display += val + "(";
+                        parensCount++;
+                    } else if (val === '(') {
+                        if (display === "0") display = "";
+                        display += "(";
+                        parensCount++;
+                    } else if (val === ')') {
+                        if (parensCount > 0) {
+                            display += ")";
+                            parensCount--;
+                        }
+                    } else {
+                        if (display === "0" && val !== '.') display = val;
+                        else display += val;
+                    }
                 }
             }
 
-            // Update UI
-            renderScreen(result || expr || "0", isResult ? expr + " =" : "");
+            renderScreen(display, history);
         }
 
         renderScreen("0");
@@ -358,76 +360,51 @@
         const mouse = new THREE.Vector2();
 
         function activateButton(btn) {
-            // Physics Animation
-            btn.position.z = 0.25; // Push in
-            btn.children[0].material.emissiveIntensity = 2; // Glow up
-            
+            btn.position.z = 0.25; 
+            btn.children[0].material.emissiveIntensity = 2;
             setTimeout(() => {
-                btn.position.z = btn.userData.origZ; // Spring back
+                btn.position.z = btn.userData.origZ;
                 if(btn.userData.label !== '=') btn.children[0].material.emissiveIntensity = 0;
             }, 100);
-
             handleInput(btn.userData.label);
         }
 
         window.addEventListener('pointerdown', (event) => {
             mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
-            
             raycaster.setFromCamera(mouse, camera);
-            // Intersect with button meshes inside groups
             const intersects = raycaster.intersectObjects(buttons.map(b => b.children[0]));
-            
-            if (intersects.length > 0) {
-                const parentGroup = intersects[0].object.parent;
-                activateButton(parentGroup);
-            }
+            if (intersects.length > 0) activateButton(intersects[0].object.parent);
         });
 
-        // Keyboard Support
+        // Keyboard
         window.addEventListener('keydown', (e) => {
-            const keyMap = {
-                'Enter': '=', 'Backspace': '←', 'Escape': 'AC',
-                's': 'sin', 'c': 'cos'
+            const keyMap = { 
+                'Enter': '=', 'Backspace': 'DEL', 'Escape': 'AC', 
+                's': 'sin', 'c': 'cos', 't': 'tan' 
             };
             const key = keyMap[e.key] || e.key;
-            
-            // Find button
             const btn = buttons.find(b => b.userData.label === key);
             if (btn) activateButton(btn);
         });
 
-        // --- 7. ANIMATION LOOP ---
-        
+        // Loop
         const clock = new THREE.Clock();
-
         function animate() {
             requestAnimationFrame(animate);
             const time = clock.getElapsedTime();
-
-            // Floating Animation for Calculator
             calcGroup.position.y = Math.sin(time * 0.5) * 0.2;
             calcGroup.rotation.z = Math.cos(time * 0.25) * 0.02;
             calcGroup.rotation.x = Math.sin(time * 0.25) * 0.02;
-
-            // Rotate Particles
             starMesh.rotation.y = time * 0.05;
-            starMesh.rotation.z = time * 0.02;
-
-            // Dynamic Lights
-            rimLight1.position.x = Math.sin(time) * 10;
-            rimLight1.position.z = Math.cos(time) * 10;
-            
             controls.update();
             renderer.render(scene, camera);
         }
 
-        // Init
         document.getElementById('loader').style.opacity = '0';
         setTimeout(() => document.getElementById('loader').remove(), 1000);
         animate();
 
-        // Resize Handler
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
