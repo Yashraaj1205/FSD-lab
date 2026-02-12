@@ -1,0 +1,439 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Monolith | Ultimate 3D Calculator</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Rajdhani:wght@300;500;700&display=swap" rel="stylesheet">
+    <style>
+        body { 
+            margin: 0; 
+            overflow: hidden; 
+            background-color: #050505; 
+            font-family: 'Rajdhani', sans-serif;
+            user-select: none;
+        }
+        #ui-layer {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            pointer-events: none;
+            z-index: 10;
+        }
+        #loader {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            color: #00f3ff;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 2rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5rem;
+            animation: pulse 2s infinite;
+            transition: opacity 1s ease;
+        }
+        .hud-text {
+            position: absolute;
+            color: rgba(0, 243, 255, 0.4);
+            font-size: 0.8rem;
+            letter-spacing: 2px;
+            text-transform: uppercase;
+        }
+        .bl { bottom: 30px; left: 40px; }
+        .tr { top: 30px; right: 40px; text-align: right;}
+        
+        @keyframes pulse { 0% { opacity: 0.5; } 50% { opacity: 1; text-shadow: 0 0 20px #00f3ff; } 100% { opacity: 0.5; } }
+    </style>
+</head>
+<body>
+
+    <div id="ui-layer">
+        <div id="loader">Initializing Core...</div>
+        <div class="hud-text bl">System: Online<br>Mode: Interactive</div>
+        <div class="hud-text tr">The Monolith<br>v.9.0.1</div>
+    </div>
+
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.160.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.160.0/examples/jsm/"
+            }
+        }
+    </script>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RoundedBoxGeometry } from 'three/addons/geometries/RoundedBoxGeometry.js';
+        import { RectAreaLightUniformsLib } from 'three/addons/lights/RectAreaLightUniformsLib.js';
+
+        // --- 1. ENGINE SETUP ---
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.FogExp2(0x050505, 0.02);
+
+        const camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 0, 14); // Head-on view initially
+
+        const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Cap at 2x for performance
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        renderer.shadowMap.enabled = true;
+        renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+        document.body.appendChild(renderer.domElement);
+
+        RectAreaLightUniformsLib.init();
+
+        // Controls
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 8;
+        controls.maxDistance = 20;
+        controls.enablePan = false;
+
+        // --- 2. MATERIALS & ASSETS ---
+        
+        // The "Monolith" Glass Material
+        const glassMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            metalness: 0.1,
+            roughness: 0.05,
+            transmission: 0.95, // Glass-like transparency
+            thickness: 2.5, // Refraction thickness
+            clearcoat: 1.0,
+            clearcoatRoughness: 0.0,
+            ior: 1.5,
+            attenuationColor: 0x00f3ff, // Cyan tint inside
+            attenuationDistance: 5
+        });
+
+        // Button Material (Dark Matte Metal)
+        const btnBaseMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0x111111,
+            metalness: 0.8,
+            roughness: 0.4,
+            clearcoat: 0.2
+        });
+
+        // --- 3. SCENE OBJECTS ---
+
+        const calcGroup = new THREE.Group();
+        scene.add(calcGroup);
+
+        // A. The Body (Glass Case)
+        const bodyGeo = new RoundedBoxGeometry(5, 7.5, 0.8, 4, 0.2);
+        const bodyMesh = new THREE.Mesh(bodyGeo, glassMaterial);
+        bodyMesh.castShadow = true;
+        calcGroup.add(bodyMesh);
+
+        // B. Internal Backplate (To make text legible against glass)
+        const plateGeo = new THREE.PlaneGeometry(4.6, 7.1);
+        const plateMat = new THREE.MeshBasicMaterial({ color: 0x000000 });
+        const plate = new THREE.Mesh(plateGeo, plateMat);
+        plate.position.z = -0.3; 
+        calcGroup.add(plate);
+
+        // C. The Screen (Dynamic Canvas)
+        const canvas = document.createElement('canvas');
+        canvas.width = 1024; canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+        
+        const screenTex = new THREE.CanvasTexture(canvas);
+        const screenMat = new THREE.MeshStandardMaterial({
+            map: screenTex,
+            emissive: 0xffffff,
+            emissiveMap: screenTex,
+            emissiveIntensity: 2, // Glow intensity
+            roughness: 0.2,
+            metalness: 0.8,
+            transparent: true
+        });
+
+        const screenMesh = new THREE.Mesh(new THREE.PlaneGeometry(4.2, 1.2), screenMat);
+        screenMesh.position.set(0, 2.6, 0.41);
+        calcGroup.add(screenMesh);
+
+        function renderScreen(mainText, subText = "") {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // Subtext (History)
+            ctx.font = '500 40px "Rajdhani"';
+            ctx.fillStyle = 'rgba(0, 243, 255, 0.5)'; // Cyan dim
+            ctx.textAlign = 'right';
+            ctx.fillText(subText, 980, 60);
+
+            // Main Text
+            ctx.font = '700 140px "Orbitron"';
+            ctx.fillStyle = '#ffffff';
+            ctx.shadowColor = '#00f3ff';
+            ctx.shadowBlur = 20;
+            ctx.fillText(mainText, 980, 200);
+            
+            screenTex.needsUpdate = true;
+        }
+
+        // D. Buttons
+        const buttons = [];
+        const btnLabels = [
+            ['AC', 'sin', 'cos', '/'],
+            ['7', '8', '9', '*'],
+            ['4', '5', '6', '-'],
+            ['1', '2', '3', '+'],
+            ['0', '.', '←', '=']
+        ];
+
+        const btnGeo = new RoundedBoxGeometry(0.9, 0.7, 0.3, 4, 0.1);
+
+        btnLabels.forEach((row, rIdx) => {
+            row.forEach((label, cIdx) => {
+                const btnGroup = new THREE.Group();
+                
+                // Button Mesh
+                const mesh = new THREE.Mesh(btnGeo, btnBaseMaterial.clone());
+                
+                // Color coding
+                if(label === '=') mesh.material.emissive = new THREE.Color(0x00f3ff);
+                if(label === 'AC') mesh.material.color = new THREE.Color(0xff0055);
+                
+                mesh.castShadow = true;
+                btnGroup.add(mesh);
+
+                // Label Text
+                const lblCanvas = document.createElement('canvas');
+                lblCanvas.width = 128; lblCanvas.height = 128;
+                const lCtx = lblCanvas.getContext('2d');
+                lCtx.font = 'bold 60px "Rajdhani"';
+                lCtx.fillStyle = '#ffffff';
+                lCtx.textAlign = 'center';
+                lCtx.textBaseline = 'middle';
+                lCtx.fillText(label, 64, 64);
+                
+                const lblTex = new THREE.CanvasTexture(lblCanvas);
+                const lblMat = new THREE.MeshBasicMaterial({ map: lblTex, transparent: true });
+                const lblMesh = new THREE.Mesh(new THREE.PlaneGeometry(0.7, 0.7), lblMat);
+                lblMesh.position.z = 0.16;
+                btnGroup.add(lblMesh);
+
+                // Position
+                btnGroup.position.set(
+                    (cIdx - 1.5) * 1.1,
+                    1.2 - (rIdx * 0.9),
+                    0.4
+                );
+                
+                // Metadata
+                btnGroup.userData = { 
+                    label: label, 
+                    origZ: 0.4,
+                    mesh: mesh 
+                };
+                
+                calcGroup.add(btnGroup);
+                buttons.push(btnGroup);
+            });
+        });
+
+        // --- 4. LIGHTING SYSTEM ---
+
+        // Ambient tint
+        const ambient = new THREE.AmbientLight(0x222222);
+        scene.add(ambient);
+
+        // Main Spotlight (creates shadows)
+        const spot = new THREE.SpotLight(0xffffff, 50);
+        spot.position.set(10, 20, 10);
+        spot.angle = 0.3;
+        spot.penumbra = 1;
+        spot.castShadow = true;
+        scene.add(spot);
+
+        // Cyan Rim Light (Cyberpunk feel)
+        const rimLight1 = new THREE.PointLight(0x00f3ff, 20, 20);
+        rimLight1.position.set(-5, 0, -5);
+        scene.add(rimLight1);
+
+        // Magenta Rim Light
+        const rimLight2 = new THREE.PointLight(0xff0055, 20, 20);
+        rimLight2.position.set(5, -5, -5);
+        scene.add(rimLight2);
+
+        // --- 5. BACKGROUND PARTICLES (The "Mesmerizing" Part) ---
+        const particleCount = 400;
+        const posArray = new Float32Array(particleCount * 3);
+        
+        for(let i=0; i < particleCount * 3; i++) {
+            posArray[i] = (Math.random() - 0.5) * 30; // Spread
+        }
+        
+        const starsGeo = new THREE.BufferGeometry();
+        starsGeo.setAttribute('position', new THREE.BufferAttribute(posArray, 3));
+        
+        const starsMat = new THREE.PointsMaterial({
+            size: 0.1,
+            color: 0x00f3ff,
+            transparent: true,
+            opacity: 0.8,
+            blending: THREE.AdditiveBlending
+        });
+        
+        const starMesh = new THREE.Points(starsGeo, starsMat);
+        scene.add(starMesh);
+
+
+        // --- 6. LOGIC & INTERACTION ---
+
+        let expr = "";
+        let result = "";
+        let isResult = false;
+
+        // Sound Synthesis (Browser Native)
+        const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        function playTone(freq, type='sine') {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = type;
+            osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+            gain.gain.setValueAtTime(0.1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.1);
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        function handleInput(val) {
+            // Visual Effect: Shake Screen slightly
+            screenMesh.position.x = (Math.random() - 0.5) * 0.05;
+            setTimeout(() => screenMesh.position.x = 0, 50);
+
+            if (val === 'AC') {
+                expr = "";
+                result = "";
+                playTone(200, 'triangle');
+            } else if (val === '←') {
+                expr = expr.slice(0, -1);
+                playTone(300);
+            } else if (val === '=') {
+                playTone(600, 'square');
+                try {
+                    // Safe Eval replacement with Math functions
+                    let safeExpr = expr
+                        .replace(/sin/g, 'Math.sin')
+                        .replace(/cos/g, 'Math.cos')
+                        .replace(/tan/g, 'Math.tan')
+                        .replace(/log/g, 'Math.log10');
+                    
+                    // Simple parser for demonstration
+                    const res = eval(safeExpr); 
+                    
+                    if (!isFinite(res) || isNaN(res)) throw "Error";
+                    result = parseFloat(res.toFixed(8)).toString();
+                    isResult = true;
+                } catch {
+                    result = "ERR";
+                }
+            } else {
+                playTone(400 + Math.random()*100);
+                if (isResult && !['+','-','*','/'].includes(val)) {
+                    expr = val;
+                    result = "";
+                    isResult = false;
+                } else {
+                    isResult = false;
+                    expr += val;
+                }
+            }
+
+            // Update UI
+            renderScreen(result || expr || "0", isResult ? expr + " =" : "");
+        }
+
+        renderScreen("0");
+
+        // Raycasting
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+
+        function activateButton(btn) {
+            // Physics Animation
+            btn.position.z = 0.25; // Push in
+            btn.children[0].material.emissiveIntensity = 2; // Glow up
+            
+            setTimeout(() => {
+                btn.position.z = btn.userData.origZ; // Spring back
+                if(btn.userData.label !== '=') btn.children[0].material.emissiveIntensity = 0;
+            }, 100);
+
+            handleInput(btn.userData.label);
+        }
+
+        window.addEventListener('pointerdown', (event) => {
+            mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+            
+            raycaster.setFromCamera(mouse, camera);
+            // Intersect with button meshes inside groups
+            const intersects = raycaster.intersectObjects(buttons.map(b => b.children[0]));
+            
+            if (intersects.length > 0) {
+                const parentGroup = intersects[0].object.parent;
+                activateButton(parentGroup);
+            }
+        });
+
+        // Keyboard Support
+        window.addEventListener('keydown', (e) => {
+            const keyMap = {
+                'Enter': '=', 'Backspace': '←', 'Escape': 'AC',
+                's': 'sin', 'c': 'cos'
+            };
+            const key = keyMap[e.key] || e.key;
+            
+            // Find button
+            const btn = buttons.find(b => b.userData.label === key);
+            if (btn) activateButton(btn);
+        });
+
+        // --- 7. ANIMATION LOOP ---
+        
+        const clock = new THREE.Clock();
+
+        function animate() {
+            requestAnimationFrame(animate);
+            const time = clock.getElapsedTime();
+
+            // Floating Animation for Calculator
+            calcGroup.position.y = Math.sin(time * 0.5) * 0.2;
+            calcGroup.rotation.z = Math.cos(time * 0.25) * 0.02;
+            calcGroup.rotation.x = Math.sin(time * 0.25) * 0.02;
+
+            // Rotate Particles
+            starMesh.rotation.y = time * 0.05;
+            starMesh.rotation.z = time * 0.02;
+
+            // Dynamic Lights
+            rimLight1.position.x = Math.sin(time) * 10;
+            rimLight1.position.z = Math.cos(time) * 10;
+            
+            controls.update();
+            renderer.render(scene, camera);
+        }
+
+        // Init
+        document.getElementById('loader').style.opacity = '0';
+        setTimeout(() => document.getElementById('loader').remove(), 1000);
+        animate();
+
+        // Resize Handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+    </script>
+</body>
+</html>
